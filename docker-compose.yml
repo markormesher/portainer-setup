@@ -1,0 +1,21 @@
+version: '3.3'
+
+services:
+  portainer:
+    image: portainer/portainer-ce
+    restart: always
+    command: --admin-password-file '/run/secrets/admin_password'
+    ports:
+      - "3005:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    secrets:
+      - admin_password
+
+volumes:
+  portainer_data:
+
+secrets:
+  admin_password:
+    file: ./secrets/admin_password
