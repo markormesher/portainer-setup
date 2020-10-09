@@ -4,18 +4,56 @@ services:
   portainer:
     image: portainer/portainer-ce
     restart: always
-    command: --admin-password-file '/run/secrets/admin_password'
+    command: --admin-password-file '/run/secrets/admin-password'
     ports:
       - "3005:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
+      - portainer-data:/data
     secrets:
-      - admin_password
+      - admin-password
+
+  influxdb:
+    image: influxdb
+    restart: always
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+
+  grafana:
+    build: ./grafana
+    restart: always
+    ports:
+      - 3009:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/admin-password
+    depends_on:
+      - influxdb
+    volumes:
+      - grafana-data:/var/lib/grafana
+    secrets:
+      - admin-password
+
+  telegraf:
+    build: ./telegraf
+    restart: always
+    depends_on:
+      - influxdb
+    environment:
+      - HOST_MOUNT_PREFIX=/rootfs
+      - HOST_ETC=/rootfs/etc
+      - HOST_PROC=/rootfs/proc
+      - HOST_RUN=/rootfs/run
+      - HOST_SYS=/rootfs/sys
+      - HOST_VAR=/rootfs/var
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
 
 volumes:
-  portainer_data:
+  grafana-data:
+  influxdb-data:
+  portainer-data:
 
 secrets:
-  admin_password:
-    file: ./secrets/admin_password
+  admin-password:
+    file: ./secrets/admin-password
