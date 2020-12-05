@@ -1,21 +1,70 @@
 version: '3.3'
 
 services:
+  static:
+    build: ./static
+    ports:
+      - 8080
+    networks:
+      - traefik_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik_default
+      - traefik.http.routers.server-static.rule=Host(`server.markormesher.co.uk`, `www.server.markormesher.co.uk`)
+      - traefik.http.routers.server-static.tls.certresolver=letsencrypt
+      - traefik.http.routers.server-static.middlewares=strip-www@file,server-admin-auth@file
+
+  traefik:
+    build: ./traefik
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    networks:
+      - traefik_default
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - cert-storage:/certs/
+    secrets:
+      - admin-users
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik_default
+      - traefik.http.routers.server-traefik.rule=Host(`server.markormesher.co.uk`, `www.server.markormesher.co.uk`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      - traefik.http.routers.server-traefik.tls.certresolver=letsencrypt
+      - traefik.http.routers.server-traefik.middlewares=strip-www@file,server-admin-auth@file
+      - traefik.http.routers.server-traefik.service=api@internal
+
   portainer:
     image: portainer/portainer-ce
     restart: always
     command: --admin-password-file '/run/secrets/admin-password'
     ports:
-      - "3005:9000"
+      - 8000
+      - 9000
+    networks:
+      - traefik_default
+      - internal
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer-data:/data
     secrets:
       - admin-password
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik_default
+      - traefik.http.middlewares.server-portainer-stripprefix.stripprefix.prefixes=/portainer
+      - traefik.http.middlewares.server-portainer-stripprefix.stripprefix.forceSlash=false
+      - traefik.http.routers.server-portainer.rule=Host(`server.markormesher.co.uk`, `www.server.markormesher.co.uk`) && PathPrefix(`/portainer`)
+      - traefik.http.routers.server-portainer.tls.certresolver=letsencrypt
+      - traefik.http.routers.server-portainer.middlewares=strip-www@file,server-portainer-stripprefix@docker
+      - traefik.http.services.server-portainer.loadbalancer.server.port=9000
 
   influxdb:
     image: influxdb
     restart: always
+    networks:
+      - internal
     volumes:
       - influxdb-data:/var/lib/influxdb
 
@@ -23,7 +72,10 @@ services:
     build: ./grafana
     restart: always
     ports:
-      - 3009:3000
+      - 3000
+    networks:
+      - traefik_default
+      - internal
     environment:
       - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/admin-password
     depends_on:
@@ -32,10 +84,18 @@ services:
       - grafana-data:/var/lib/grafana
     secrets:
       - admin-password
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik_default
+      - traefik.http.routers.server-grafana.rule=Host(`server.markormesher.co.uk`, `www.server.markormesher.co.uk`) && PathPrefix(`/grafana`)
+      - traefik.http.routers.server-grafana.tls.certresolver=letsencrypt
+      # - traefik.http.routers.server-grafana.middlewares=strip-www@file
 
   telegraf:
     build: ./telegraf
     restart: always
+    networks:
+      - internal
     depends_on:
       - influxdb
     environment:
@@ -53,7 +113,16 @@ volumes:
   grafana-data:
   influxdb-data:
   portainer-data:
+  cert-storage:
+
+networks:
+  internal:
+    external: false
+  traefik_default:
+    external: true
 
 secrets:
   admin-password:
     file: ./secrets/admin-password
+  admin-users:
+    file: ./secrets/admin-users

@@ -1,0 +1,37 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+entryPoints:
+  http:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: https
+          scheme: https
+  https:
+    address: :443
+
+log:
+  level: INFO
+  format: json
+
+api:
+  insecure: false
+  dashboard: true
+
+providers:
+  docker:
+    endpoint: unix:///var/run/docker.sock
+    exposedByDefault: false
+  file:
+    directory: "/etc/traefik/shared/"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "me@markormesher.co.uk"
+      storage: "/certs/letsencrypt-acme.json"
+      httpChallenge:
+        entryPoint: http

@@ -1,0 +1,10 @@
+http:
+  middlewares:
+    strip-www:
+      redirectRegex:
+        regex: "^https://(?:www\\.)?(.+)"
+        replacement: "https://${1}"
+        permanent: true
+    server-admin-auth:
+      basicAuth:
+        usersFile: "/run/secrets/admin-users"
