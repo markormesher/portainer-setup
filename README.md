@@ -2,7 +2,8 @@
 
 100% Dockerised setup for:
 
+- Grafana
+- InfluxDB
 - Portainer
 - Telegraf
-- InfluxDB
-- Grafana
+- Traefik
