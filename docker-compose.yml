@@ -3,6 +3,7 @@ version: '3.3'
 services:
   static:
     build: ./static
+    restart: always
     ports:
       - 8080
     networks:
@@ -16,6 +17,7 @@ services:
 
   traefik:
     build: ./traefik
+    restart: always
     ports:
       - 80:80
       - 443:443
@@ -53,12 +55,12 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik_default
-      - traefik.http.middlewares.server-portainer-stripprefix.stripprefix.prefixes=/portainer
-      - traefik.http.middlewares.server-portainer-stripprefix.stripprefix.forceSlash=false
-      - traefik.http.routers.server-portainer.rule=Host(`server.markormesher.co.uk`, `www.server.markormesher.co.uk`) && PathPrefix(`/portainer`)
-      - traefik.http.routers.server-portainer.tls.certresolver=letsencrypt
-      - traefik.http.routers.server-portainer.middlewares=strip-www@file,server-portainer-stripprefix@docker
-      - traefik.http.services.server-portainer.loadbalancer.server.port=9000
+      - traefik.http.middlewares.portainer-server-admin-stripprefix.stripprefix.prefixes=/portainer
+      - traefik.http.middlewares.portainer-server-admin-stripprefix.stripprefix.forceSlash=false
+      - traefik.http.routers.portainer-server-admin.rule=Host(`server.markormesher.co.uk`, `www.server.markormesher.co.uk`) && PathPrefix(`/portainer`)
+      - traefik.http.routers.portainer-server-admin.tls.certresolver=letsencrypt
+      - traefik.http.routers.portainer-server-admin.middlewares=strip-www@file,portainer-server-admin-stripprefix@docker
+      - traefik.http.services.portainer-server-admin.loadbalancer.server.port=9000
 
   influxdb:
     image: influxdb
